@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KisanAI 2.0 – Real-time Agriculture Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   KISANAI 2.0 — VIBRANT AGRICULTURAL DESIGN SYSTEM
+   New palette: Deep Forest + Amber Gold + Sky Blue
+═══════════════════════════════════════════════════════════ */
+:root {
+  /* New vibrant palette from doc 1 */
+  --primary:     #00A86B;
+  --primary-dk:  #00875A;
+  --primary-lt:  #00C980;
+  --primary-pale:#D6F5EA;
+  --secondary:   #FFB347;
+  --secondary-dk:#E69500;
+  --secondary-lt:#FFCC7A;
+  --accent:      #0099FF;
+  --accent-dk:   #0077CC;
+  --accent-lt:   #66C2FF;
+  --danger:      #FF4444;
+  --danger-lt:   #FFE5E5;
+  --purple:      #7C3AED;
+  --purple-lt:   #EDE9FE;
+  /* Neutrals */
+  --bg:          #F0FAF5;
+  --bg2:         #E8F5EE;
+  --card:        #FFFFFF;
+  --border:      #C8E6D8;
+  --text:        #0D2B1A;
+  --text-md:     #2D6A4F;
+  --text-lt:     #74A88A;
+  /* Effects */
+  --shadow-sm:   0 2px 8px rgba(0,168,107,.08);
+  --shadow:      0 6px 24px rgba(0,168,107,.12);
+  --shadow-lg:   0 16px 48px rgba(0,168,107,.18);
+  --shadow-card: 0 8px 32px rgba(0,0,0,.07);
+  --glow:        0 0 30px rgba(0,200,120,.25);
+  --r:           18px;
+  --rs:          12px;
+  --rsx:         8px;
+  --tr:          all .3s cubic-bezier(.34,1.2,.64,1);
+  --tr-fast:     all .18s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Animated mesh background */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -2;
+  background:
+    radial-gradient(ellipse 800px 600px at 0% 0%, rgba(0,168,107,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 600px 500px at 100% 100%, rgba(0,153,255,.06) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 400px at 50% 50%, rgba(255,179,71,.05) 0%, transparent 70%);
+}
+
+/* Floating leaf pattern */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background-image:
+    radial-gradient(circle at 20px 20px, rgba(0,168,107,.04) 2px, transparent 2px),
+    radial-gradient(circle at 60px 60px, rgba(0,168,107,.03) 1px, transparent 1px);
+  background-size: 80px 80px, 40px 40px;
+}
+
+/* ═══ LIVE STATUS BAR ═══════════════════════════════════════ */
+#status-bar {
+  background: linear-gradient(90deg, var(--primary-dk), var(--primary), var(--accent-dk));
+  background-size: 300% 100%;
+  animation: statusShift 8s ease infinite;
+  color: white;
+  padding: 8px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: .76rem; font-weight: 600;
+  letter-spacing: .3px;
+}
+@keyframes statusShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.status-left { display: flex; align-items: center; gap: 16px; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #7FFF7F; animation: blink 1.5s ease infinite; flex-shrink: 0; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.status-ticker { overflow: hidden; max-width: 500px; }
+.ticker-inner { animation: ticker 25s linear infinite; white-space: nowrap; }
+@keyframes ticker { from{transform:translateX(100%)} to{transform:translateX(-100%)} }
+.status-right { display: flex; align-items: center; gap: 10px; font-size: .72rem; opacity: .9; }
+.db-pill {
+  background: rgba(255,255,255,.2); border-radius: 20px;
+  padding: 3px 10px; display: flex; align-items: center; gap: 5px;
+}
+
+/* ═══ SMART ALERTS BAR ══════════════════════════════════════ */
+#abar {
+  background: linear-gradient(90deg, var(--secondary-dk), var(--secondary));
+  color: var(--text); padding: 11px 22px;
+  text-align: center; font-weight: 700; font-size: .86rem;
+  cursor: pointer; display: none;
+  box-shadow: 0 4px 20px rgba(255,179,71,.3);
+}
+#abar.show { display: flex; align-items: center; justify-content: center; gap: 10px; animation: slideDown .4s ease; }
+@keyframes slideDown { from{transform:translateY(-100%);opacity:0} to{transform:translateY(0);opacity:1} }
+.alert-dismiss { background: rgba(0,0,0,.15); border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; color: inherit; font-size: .8rem; display: flex; align-items: center; justify-content: center; }
+
+/* ═══ HEADER ════════════════════════════════════════════════ */
+header {
+  background: linear-gradient(135deg, #0D2B1A 0%, #1B4332 50%, #0D3321 100%);
+  color: white; padding: 0 28px; height: 72px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 4px 30px rgba(0,0,0,.25);
+  position: sticky; top: 0; z-index: 200;
+  border-bottom: 1px solid rgba(0,168,107,.3);
+}
+
+.hbrand { display: flex; align-items: center; gap: 14px; }
+.hlogo {
+  width: 46px; height: 46px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px; box-shadow: var(--glow);
+  animation: logoFloat 4s ease-in-out infinite;
+}
+@keyframes logoFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+.hname { font-family: 'Sora', sans-serif; font-size: 1.5rem; font-weight: 800; line-height: 1; background: linear-gradient(90deg, #fff, var(--primary-lt)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.htag { font-size: .68rem; opacity: .7; font-weight: 500; -webkit-text-fill-color: rgba(255,255,255,.7); }
+.hright { display: flex; align-items: center; gap: 12px; }
+.hlang {
+  background: rgba(0,168,107,.25); border: 1.5px solid rgba(0,168,107,.4);
+  color: white; border-radius: var(--rsx); padding: 7px 13px;
+  font-size: .82rem; cursor: pointer; font-family: inherit; font-weight: 600;
+  transition: var(--tr-fast);
+}
+.hlang:hover { background: rgba(0,168,107,.4); }
+.online-pill {
+  background: rgba(0,200,120,.2); border: 1px solid rgba(0,200,120,.4);
+  border-radius: 20px; padding: 5px 12px; font-size: .72rem; font-weight: 700;
+  display: flex; align-items: center; gap: 6px; color: #7FFF7F;
+}
+
+/* ═══ LANG MODAL ════════════════════════════════════════════ */
+#lang-modal {
+  position: fixed; inset: 0; z-index: 1000;
+  background: linear-gradient(145deg, #0D2B1A 0%, #1B4332 40%, #0A1628 100%);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fadeIn .4s ease;
+}
+#lang-modal.hidden { display: none; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.lcard {
+  background: var(--card); border-radius: 28px;
+  padding: 40px 36px; max-width: 520px; width: 100%;
+  text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  animation: slideUp .6s cubic-bezier(.34,1.2,.64,1);
+  border: 1px solid var(--border);
+}
+@keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+.llogo {
+  width: 90px; height: 90px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 28px; display: flex; align-items: center; justify-content: center;
+  font-size: 44px; margin: 0 auto 20px;
+  box-shadow: 0 12px 36px rgba(0,168,107,.35), var(--glow);
+  animation: logoFloat 3s ease-in-out infinite;
+}
+.lcard h1 { font-family: 'Sora', sans-serif; font-size: 2.1rem; font-weight: 800; background: linear-gradient(135deg, var(--primary-dk), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
+.lcard .lsub { color: var(--text-lt); font-size: .95rem; margin-bottom: 26px; }
+
+.lgrid { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin-bottom: 22px; }
+.lbtn {
+  padding: 12px 6px; border: 2px solid var(--border);
+  border-radius: var(--rs); background: var(--bg);
+  cursor: pointer; font-size: .79rem; font-weight: 700;
+  color: var(--text-md); transition: var(--tr); line-height: 1.4;
+  font-family: inherit;
+}
+.lbtn:hover, .lbtn.sel {
+  border-color: var(--primary); background: var(--primary-pale);
+  color: var(--primary-dk); transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0,168,107,.2);
+}
+.lconfirm {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-lt));
+  color: white; border: none; border-radius: var(--r);
+  font-size: 1.08rem; font-weight: 800; cursor: pointer;
+  transition: var(--tr); font-family: 'Sora', sans-serif; letter-spacing: .5px;
+  box-shadow: 0 6px 24px rgba(0,168,107,.35);
+}
+.lconfirm:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(0,168,107,.45); }
+
+/* ═══ MAIN LAYOUT ═══════════════════════════════════════════ */
+main { max-width: 900px; margin: 0 auto; padding: 26px 20px 100px; }
+
+/* ═══ HERO VOICE SECTION ════════════════════════════════════ */
+.hero {
+  background: linear-gradient(145deg, #0D2B1A 0%, #1B4332 60%, #0E3D24 100%);
+  border-radius: 26px; padding: 36px 28px; text-align: center;
+  margin-bottom: 28px; position: relative; overflow: hidden;
+  box-shadow: var(--shadow-lg), var(--glow);
+  border: 1px solid rgba(0,168,107,.25);
+}
+/* Animated grid lines */
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(0,168,107,.06) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,168,107,.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: gridSlide 20s linear infinite;
+}
+@keyframes gridSlide { to { transform: translateY(40px); } }
+
+.hero-content { position: relative; z-index: 1; }
+.hero h2 {
+  font-family: 'Sora', sans-serif; font-size: 1.65rem; font-weight: 800;
+  color: white; margin-bottom: 6px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(0,168,107,.2); border: 1px solid rgba(0,168,107,.4);
+  border-radius: 20px; padding: 4px 14px; font-size: .75rem; font-weight: 700;
+  color: var(--primary-lt); margin-bottom: 18px;
+}
+.hero p { color: rgba(255,255,255,.8); margin-bottom: 24px; font-size: .97rem; }
+
+/* Mic button */
+.mic-wrap { position: relative; display: inline-block; margin-bottom: 18px; }
+.mic-ring1, .mic-ring2 {
+  position: absolute; border-radius: 50%;
+  border: 2px solid rgba(0,200,120,.3);
+}
+.mic-ring1 { inset: -14px; }
+.mic-ring2 { inset: -28px; border-color: rgba(0,200,120,.15); }
+.mic-ring1.pulse { animation: ring1 1.5s ease-out infinite; }
+.mic-ring2.pulse { animation: ring2 1.5s ease-out .3s infinite; }
+@keyframes ring1 { 0%{transform:scale(1);opacity:1} 100%{transform:scale(1.5);opacity:0} }
+@keyframes ring2 { 0%{transform:scale(1);opacity:.7} 100%{transform:scale(1.7);opacity:0} }
+
+.micbtn {
+  width: 92px; height: 92px; border-radius: 50%;
+  background: white; border: none; cursor: pointer;
+  font-size: 36px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  transition: var(--tr); position: relative; z-index: 2;
+}
+.micbtn:hover { transform: scale(1.1); }
+.micbtn.on {
+  background: linear-gradient(135deg, var(--danger), #FF6B6B);
+  animation: mpulse 1s ease-in-out infinite alternate;
+}
+@keyframes mpulse { 0%{box-shadow:0 0 0 0 rgba(255,68,68,.5)} 100%{box-shadow:0 0 0 24px rgba(255,68,68,0)} }
+.micstatus { color: rgba(255,255,255,.85); font-size: .87rem; font-weight: 600; min-height: 22px; margin-top: 10px; }
+
+/* Context chips */
+.ctx-row { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
+.ctx {
+  padding: 7px 15px; background: rgba(255,255,255,.12);
+  border: 1.5px solid rgba(255,255,255,.25); border-radius: 24px;
+  color: white; font-size: .78rem; font-weight: 700; cursor: pointer;
+  transition: var(--tr); font-family: inherit;
+}
+.ctx:hover, .ctx.on { background: var(--primary); border-color: var(--primary); box-shadow: 0 4px 16px rgba(0,168,107,.4); }
+
+/* Chat input */
+.chat-row { display: flex; gap: 10px; margin-top: 16px; }
+.cin {
+  flex: 1; padding: 15px 18px; border: none; border-radius: 14px;
+  font-size: .97rem; background: rgba(255,255,255,.97); outline: none;
+  font-family: inherit; color: var(--text);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.08);
+}
+.cin::placeholder { color: var(--text-lt); }
+.sendbtn {
+  padding: 15px 22px; background: linear-gradient(135deg, var(--secondary), var(--secondary-dk));
+  color: white; border: none; border-radius: 14px;
+  font-size: 1.2rem; cursor: pointer; font-weight: 800;
+  transition: var(--tr); box-shadow: 0 4px 16px rgba(255,179,71,.4);
+}
+.sendbtn:hover { transform: scale(1.08); box-shadow: 0 8px 24px rgba(255,179,71,.5); }
+
+/* AI Response box */
+.ai-box {
+  background: white; border-radius: var(--r); padding: 20px;
+  margin-top: 16px; border-left: 5px solid var(--primary);
+  box-shadow: var(--shadow-card); display: none;
+  animation: slideUp .4s ease; position: relative;
+}
+.ai-box.show { display: block; }
+.ai-box::before {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0;
+  width: 3px; background: linear-gradient(to bottom, var(--primary), var(--accent));
+  border-radius: 0 var(--r) var(--r) 0;
+}
+.ai-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ai-lbl {
+  font-size: .72rem; font-weight: 800; color: var(--primary);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  display: flex; align-items: center; gap: 6px;
+}
+.ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: blink 1.5s infinite; }
+.spkbtn {
+  background: var(--primary-pale); border: none; border-radius: var(--rsx);
+  padding: 6px 13px; cursor: pointer; font-size: .8rem;
+  color: var(--primary-dk); font-weight: 700; transition: var(--tr-fast);
+  display: flex; align-items: center; gap: 5px; font-family: inherit;
+}
+.spkbtn:hover { background: var(--primary); color: white; }
+.ai-txt { color: var(--text); line-height: 1.78; font-size: .96rem; white-space: pre-wrap; }
+
+/* Typing animation */
+.typing-cursor { display: inline-block; width: 3px; height: 1.1em; background: var(--primary); margin-left: 2px; animation: cursorBlink .7s step-end infinite; vertical-align: text-bottom; }
+@keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ═══ REAL-TIME INDICATOR ═══════════════════════════════════ */
+.rt-bar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px; padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(0,168,107,.08), rgba(0,153,255,.06));
+  border-radius: var(--rs); border: 1px solid var(--border);
+  overflow: hidden;
+}
+.rt-label { font-size: .77rem; font-weight: 800; color: var(--text-md); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+.rt-price-scroll { flex: 1; overflow: hidden; }
+.rt-prices { display: flex; gap: 18px; animation: priceScroll 30s linear infinite; white-space: nowrap; }
+.rt-price-item { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 700; color: var(--text); }
+.rt-up { color: var(--primary); }
+.rt-down { color: var(--danger); }
+
+@keyframes priceScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+/* ═══ SECTION & FEATURE CARDS ═══════════════════════════════ */
+.sec-ttl { font-family: 'Sora', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.sec-ttl::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, var(--border), transparent); border-radius: 2px; }
+
+.fgrid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-bottom: 28px; }
+@media(min-width:560px) { .fgrid { grid-template-columns: repeat(3,1fr); } }
+
+.fcard {
+  background: var(--card); border-radius: var(--r);
+  padding: 22px 16px; text-align: center; cursor: pointer;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm); transition: var(--tr);
+  position: relative; overflow: hidden;
+}
+.fcard::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--ac, rgba(0,168,107,.08)), transparent);
+  opacity: 0; transition: opacity .3s;
+}
+.fcard:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--ac, var(--primary)); }
+.fcard:hover::after { opacity: 1; }
+.fcard-top { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--ac, var(--primary)); border-radius: var(--r) var(--r) 0 0; }
+.ficon { font-size: 42px; margin-bottom: 10px; display: block; position: relative; z-index: 1; }
+.fname { font-family: 'Sora', sans-serif; font-size: .97rem; font-weight: 800; color: var(--text); margin-bottom: 4px; position: relative; z-index: 1; }
+.fdesc { font-size: .74rem; color: var(--text-lt); line-height: 1.4; position: relative; z-index: 1; }
+.flive { position: absolute; top: 12px; right: 12px; background: var(--primary); color: white; border-radius: 20px; padding: 2px 8px; font-size: .65rem; font-weight: 800; letter-spacing: .5px; }
+
+/* ═══ PANELS ════════════════════════════════════════════════ */
+.panel {
+  display: none; background: var(--card); border-radius: var(--r);
+  padding: 26px; margin-bottom: 20px;
+  box-shadow: var(--shadow-card); animation: slideUp .4s ease;
+  border: 1px solid var(--border);
+}
+.panel.show { display: block; }
+.panel-ttl {
+  font-family: 'Sora', sans-serif; font-size: 1.3rem; font-weight: 800;
+  color: var(--text); margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 16px; border-bottom: 2px solid var(--bg2);
+}
+.closebtn {
+  margin-left: auto; background: var(--bg2); border: none;
+  border-radius: var(--rsx); padding: 7px 15px; cursor: pointer;
+  color: var(--text-md); font-size: .82rem; font-weight: 700;
+  transition: var(--tr-fast); font-family: inherit;
+}
+.closebtn:hover { background: var(--danger-lt); color: var(--danger); }
+
+/* ═══ FORMS ═════════════════════════════════════════════════ */
+.fg { margin-bottom: 16px; }
+.fl { display: block; font-weight: 700; color: var(--text-md); margin-bottom: 6px; font-size: .87rem; }
+.fi, .fs {
+  width: 100%; padding: 14px 16px;
+  border: 2px solid var(--border); border-radius: var(--rs);
+  font-size: .96rem; font-family: inherit;
+  background: var(--bg); color: var(--text);
+  transition: border-color .2s, box-shadow .2s; outline: none;
+}
+.fi:focus, .fs:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(0,168,107,.12);
+}
+.subbtn {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-lt));
+  color: white; border: none; border-radius: var(--r);
+  font-size: 1.05rem; font-weight: 800; cursor: pointer;
+  transition: var(--tr); font-family: 'Sora', sans-serif;
+  box-shadow: 0 6px 24px rgba(0,168,107,.35);
+}
+.subbtn:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.subbtn:disabled { opacity: .6; transform: none; cursor: not-allowed; }
+
+/* ═══ RESULT BOX ════════════════════════════════════════════ */
+.rbox {
+  background: linear-gradient(135deg, var(--bg) 0%, rgba(0,168,107,.04) 100%);
+  border-radius: var(--rs); padding: 20px;
+  margin-top: 16px; border: 2px solid var(--border); display: none;
+  animation: slideUp .4s ease;
+}
+.rbox.show { display: block; }
+.rhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.rlbl { font-size: .72rem; font-weight: 800; color: var(--text-lt); text-transform: uppercase; letter-spacing: 1.5px; }
+.rtext { color: var(--text); line-height: 1.78; font-size: .94rem; white-space: pre-wrap; }
+
+/* ═══ UPLOAD ZONE ═══════════════════════════════════════════ */
+.upzone {
+  border: 3px dashed var(--primary); border-radius: var(--r);
+  padding: 36px 20px; text-align: center; background: var(--primary-pale);
+  cursor: pointer; transition: var(--tr); margin-bottom: 16px;
+}
+.upzone:hover { background: rgba(0,168,107,.15); transform: scale(1.01); }
+.upicon { font-size: 48px; margin-bottom: 12px; display: block; }
+.uptxt { font-weight: 700; color: var(--primary-dk); font-size: 1rem; }
+.uphint { font-size: .8rem; color: var(--text-lt); margin-top: 5px; }
+
+/* ═══ HEALTH SCORE ══════════════════════════════════════════ */
+.hs-wrap { text-align: center; margin: 16px 0; }
+.hs-ring {
+  width: 100px; height: 100px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  margin: 0 auto 10px; font-weight: 800; font-size: 1.8rem;
+  border: 7px solid var(--primary); color: var(--primary);
+  background: var(--primary-pale); font-family: 'Sora', sans-serif;
+  box-shadow: 0 0 0 4px rgba(0,168,107,.12);
+  animation: scoreAppear .8s cubic-bezier(.34,1.2,.64,1);
+}
+@keyframes scoreAppear { from{transform:scale(.4);opacity:0} to{transform:scale(1);opacity:1} }
+.hs-ring.fair { border-color: var(--secondary); color: var(--secondary-dk); background: #FFF8E1; box-shadow: 0 0 0 4px rgba(255,179,71,.15); }
+.hs-ring.poor { border-color: var(--danger); color: var(--danger); background: var(--danger-lt); box-shadow: 0 0 0 4px rgba(255,68,68,.12); }
+
+/* ═══ WEATHER ═══════════════════════════════════════════════ */
+.w-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 16px; }
+.wstat {
+  background: white; border-radius: var(--rs); padding: 16px; text-align: center;
+  border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+  transition: var(--tr);
+}
+.wstat:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.wval { font-family: 'Sora', sans-serif; font-size: 1.55rem; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
+.wlbl { font-size: .74rem; color: var(--text-lt); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ═══ ALERTS ════════════════════════════════════════════════ */
+.alerts-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.ali {
+  background: #FFF9F0; border-left: 5px solid var(--secondary);
+  border-radius: var(--rs); padding: 13px 16px;
+  display: flex; align-items: flex-start; gap: 10px;
+  box-shadow: var(--shadow-sm); animation: slideUp .3s ease;
+}
+.ali.danger { background: var(--danger-lt); border-color: var(--danger); }
+.ali.info { background: rgba(0,153,255,.08); border-color: var(--accent); }
+.ali-icon { font-size: 1.35rem; flex-shrink: 0; margin-top: 1px; }
+.ali-txt { font-size: .88rem; line-height: 1.55; color: var(--text); font-weight: 500; }
+.ali-time { font-size: .72rem; color: var(--text-lt); margin-top: 3px; }
+
+/* ═══ PRICE TABLE ═══════════════════════════════════════════ */
+.ptbl { width: 100%; border-collapse: collapse; margin-bottom: 16px; border-radius: var(--rs); overflow: hidden; box-shadow: var(--shadow-sm); }
+.ptbl th { background: linear-gradient(135deg, #0D2B1A, #1B4332); color: white; padding: 13px 14px; text-align: left; font-size: .8rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.ptbl td { padding: 12px 14px; border-bottom: 1px solid var(--bg2); font-size: .88rem; font-weight: 600; color: var(--text); }
+.ptbl tr:last-child td { border-bottom: none; }
+.ptbl tr:nth-child(even) td { background: var(--bg); }
+.ptbl tr:hover td { background: var(--primary-pale); }
+.tbadge { padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 800; }
+.tr-rising { background: var(--primary-pale); color: var(--primary-dk); }
+.tr-falling { background: var(--danger-lt); color: var(--danger); }
+.tr-stable { background: #FFF8E1; color: var(--secondary-dk); }
+.tr-volatile { background: rgba(0,153,255,.1); color: var(--accent-dk); }
+.price-change { font-size: .72rem; font-weight: 700; }
+.price-up { color: var(--primary); }
+.price-dn { color: var(--danger); }
+
+/* ═══ SCHEME CARDS ══════════════════════════════════════════ */
+.sc {
+  background: var(--bg); border-radius: var(--rs); padding: 18px;
+  margin-bottom: 12px; border-left: 5px solid var(--accent);
+  box-shadow: var(--shadow-sm); transition: var(--tr);
+}
+.sc:hover { transform: translateX(4px); box-shadow: var(--shadow); }
+.sc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sc-name { font-family: 'Sora', sans-serif; font-size: 1rem; font-weight: 800; color: var(--text); }
+.sc-badge { background: rgba(0,153,255,.12); color: var(--accent-dk); border-radius: 20px; padding: 3px 10px; font-size: .72rem; font-weight: 800; }
+.sc-full { font-size: .78rem; color: var(--text-lt); margin-bottom: 8px; }
+.sc-benefit { font-size: .9rem; color: var(--primary-dk); font-weight: 700; margin-bottom: 8px; }
+.sc-detail { font-size: .8rem; color: var(--text-md); line-height: 1.6; }
+
+/* ═══ OFFLINE ITEMS ═════════════════════════════════════════ */
+.offline-item {
+  background: var(--bg); border-radius: var(--rs); padding: 14px 16px;
+  margin-bottom: 10px; border-left: 4px solid var(--secondary);
+  cursor: pointer; transition: var(--tr); box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; gap: 12px;
+}
+.offline-item:hover { transform: translateX(5px); box-shadow: var(--shadow); }
+.oi-icon { font-size: 1.5rem; flex-shrink: 0; }
+.oi-body { flex: 1; }
+.oi-key { font-weight: 800; color: var(--text); font-size: .9rem; margin-bottom: 3px; }
+.oi-prev { font-size: .78rem; color: var(--text-lt); line-height: 1.4; }
+.oi-meta { font-size: .7rem; color: var(--text-lt); margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+
+/* ═══ DB STATS BAR ══════════════════════════════════════════ */
+.db-stats {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 10px;
+  margin-bottom: 24px;
+}
+.db-stat {
+  background: var(--card); border-radius: var(--rs); padding: 14px;
+  text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+}
+.db-val { font-family: 'Sora', sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--text); line-height: 1; }
+.db-lbl { font-size: .7rem; color: var(--text-lt); font-weight: 600; margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+.db-growth { font-size: .72rem; color: var(--primary); font-weight: 700; }
+
+/* ═══ SPINNER ═══════════════════════════════════════════════ */
+.spin { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(0,0,0,.1); border-top-color: var(--primary); border-radius: 50%; animation: sp .8s linear infinite; vertical-align: middle; margin-right: 8px; }
+.spin.w { border-color: rgba(255,255,255,.3); border-top-color: white; }
+@keyframes sp { to{transform:rotate(360deg)} }
+
+/* ═══ SCROLLBAR ═════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
+
+/* ═══ RESPONSIVE ════════════════════════════════════════════ */
+@media(max-width:500px) {
+  .fgrid { grid-template-columns: repeat(2,1fr); }
+  .lgrid { grid-template-columns: repeat(2,1fr); }
+  .db-stats { grid-template-columns: repeat(2,1fr); }
+  .hero h2 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LIVE STATUS BAR ════════════════════════════════════════════════════════ -->
+<div id="status-bar">
+  <div class="status-left">
+    <div class="status-dot"></div>
+    <span style="font-size:.72rem">LIVE</span>
+    <div class="status-ticker">
+      <div class="ticker-inner" id="ticker">
+        🌾 Wheat ₹2,275 ↑ &nbsp;&nbsp; 🌾 Rice ₹2,183 → &nbsp;&nbsp; 🌿 Cotton ₹6,620 ↑ &nbsp;&nbsp; 🌾 Soybean ₹4,180 ↓ &nbsp;&nbsp; 🌽 Maize ₹1,870 → &nbsp;&nbsp; 🧅 Onion ₹2,410 ↑ &nbsp;&nbsp; 🍅 Tomato ₹1,950 ↓ &nbsp;&nbsp; 🥔 Potato ₹1,310 ↑
+      </div>
+    </div>
+  </div>
+  <div class="status-right">
+    <div class="db-pill">🗄️ MongoDB <span style="color:#7FFF7F">●</span> Connected</div>
+    <div class="db-pill">⚡ Socket.io <span style="color:#7FFF7F">●</span> Live</div>
+    <div id="clock" style="opacity:.8">--:--</div>
+  </div>
+</div>
+
+<!-- ══ SMART ALERTS BAR ═══════════════════════════════════════════════════════ -->
+<div id="abar">
+  <span>🔔</span>
+  <span id="atxt">Weather Alert: Heavy rain forecast for Punjab in 24 hrs — secure crops!</span>
+  <button class="alert-dismiss" onclick="hideAlert()">✕</button>
+</div>
+
+<!-- ══ LANG MODAL ═════════════════════════════════════════════════════════════ -->
+<div id="lang-modal">
+  <div class="lcard">
+    <div class="llogo">🌾</div>
+    <h1>KisanAI 2.0</h1>
+    <p class="lsub">Powered by Claude AI + Real-time Data &nbsp;•&nbsp; आपकी भाषा चुनें</p>
+    <div class="lgrid">
+      <button class="lbtn" onclick="selLang(this,'en')">English</button>
+      <button class="lbtn" onclick="selLang(this,'hi')">हिंदी<br><small style="font-weight:400">Hindi</small></button>
+      <button class="lbtn" onclick="selLang(this,'pa')">ਪੰਜਾਬੀ<br><small style="font-weight:400">Punjabi</small></button>
+      <button class="lbtn" onclick="selLang(this,'mr')">मराठी<br><small style="font-weight:400">Marathi</small></button>
+      <button class="lbtn" onclick="selLang(this,'te')">తెలుగు<br><small style="font-weight:400">Telugu</small></button>
+      <button class="lbtn" onclick="selLang(this,'ta')">தமிழ்<br><small style="font-weight:400">Tamil</small></button>
+      <button class="lbtn" onclick="selLang(this,'kn')">ಕನ್ನಡ<br><small style="font-weight:400">Kannada</small></button>
+      <button class="lbtn" onclick="selLang(this,'gu')">ગુજરાતી<br><small style="font-weight:400">Gujarati</small></button>
+      <button class="lbtn" onclick="selLang(this,'bn')">বাংলা<br><small style="font-weight:400">Bengali</small></button>
+    </div>
+    <button class="lconfirm" onclick="startApp()">✅ Start / शुरू करें</button>
+  </div>
+</div>
+
+<!-- ══ HEADER ═════════════════════════════════════════════════════════════════ -->
+<header>
+  <div class="hbrand">
+    <div class="hlogo">🌾</div>
+    <div>
+      <div class="hname">KisanAI 2.0</div>
+      <div class="htag">AI + Real-time Database + Live Market</div>
+    </div>
+  </div>
+  <div class="hright">
+    <div class="online-pill">
+      <span style="width:7px;height:7px;border-radius:50%;background:#7FFF7F;display:inline-block;animation:blink 1.5s infinite"></span>
+      LIVE
+    </div>
+    <select class="hlang" id="lsel" onchange="switchLang(this.value)">
+      <option value="en">🇺🇸 English</option>
+      <option value="hi">🇮🇳 हिंदी</option>
+      <option value="pa">🌾 ਪੰਜਾਬੀ</option>
+      <option value="mr">🌾 मराठी</option>
+      <option value="te">🌾 తెలుగు</option>
+      <option value="ta">🌾 தமிழ்</option>
+    </select>
+  </div>
+</header>
+
+<main>
+
+<!-- ── DB Stats ─────────────────────────────────────────────────────────── -->
+<div class="db-stats" id="db-stats">
+  <div class="db-stat">
+    <div class="db-val" id="db-users">2,847</div>
+    <div class="db-lbl">Farmers</div>
+    <div class="db-growth">↑ +12 today</div>
+  </div>
+  <div class="db-stat">
+    <div class="db-val" id="db-queries">18,392</div>
+    <div class="db-lbl">AI Queries</div>
+    <div class="db-growth">↑ Live</div>
+  </div>
+  <div class="db-stat">
+    <div class="db-val" id="db-diagnoses">4,215</div>
+    <div class="db-lbl">Leaf Scans</div>
+    <div class="db-growth">↑ +47 today</div>
+  </div>
+  <div class="db-stat">
+    <div class="db-val" id="db-saved">₹1.2Cr</div>
+    <div class="db-lbl">Farmer Savings</div>
+    <div class="db-growth">↑ Estimated</div>
+  </div>
+</div>
+
+<!-- ── Real-time Price Ticker ───────────────────────────────────────────── -->
+<div class="rt-bar">
+  <span class="rt-label">📡 Live Mandi</span>
+  <div class="rt-price-scroll">
+    <div class="rt-prices" id="rt-prices">
+      <!-- Duplicated for seamless loop -->
+      <span class="rt-price-item">🌾 Wheat <span class="rt-up">₹2,275 ↑</span></span>
+      <span class="rt-price-item">🌾 Rice <span>₹2,183 →</span></span>
+      <span class="rt-price-item">🌿 Cotton <span class="rt-up">₹6,620 ↑</span></span>
+      <span class="rt-price-item">🫘 Soybean <span class="rt-down">₹4,180 ↓</span></span>
+      <span class="rt-price-item">🌽 Maize <span>₹1,870 →</span></span>
+      <span class="rt-price-item">🧅 Onion <span class="rt-up">₹2,410 ↑</span></span>
+      <span class="rt-price-item">🍅 Tomato <span class="rt-down">₹1,950 ↓</span></span>
+      <span class="rt-price-item">🥔 Potato <span class="rt-up">₹1,310 ↑</span></span>
+      <!-- Duplicate -->
+      <span class="rt-price-item">🌾 Wheat <span class="rt-up">₹2,275 ↑</span></span>
+      <span class="rt-price-item">🌾 Rice <span>₹2,183 →</span></span>
+      <span class="rt-price-item">🌿 Cotton <span class="rt-up">₹6,620 ↑</span></span>
+      <span class="rt-price-item">🫘 Soybean <span class="rt-down">₹4,180 ↓</span></span>
+      <span class="rt-price-item">🌽 Maize <span>₹1,870 →</span></span>
+      <span class="rt-price-item">🧅 Onion <span class="rt-up">₹2,410 ↑</span></span>
+    </div>
+  </div>
+  <span style="font-size:.72rem;color:var(--text-lt);white-space:nowrap">Updated 2m ago</span>
+</div>
+
+<!-- ── Voice Hero ──────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--primary-lt);display:inline-block;animation:blink 1.5s infinite"></span>
+      Claude AI + MongoDB + Real-time
+    </div>
+    <h2>🎙️ बोलो, KisanAI सुन रहा है!</h2>
+    <p id="hero-sub">Voice-powered AI assistant for Indian farmers • Real Claude AI responses</p>
+
+    <div class="mic-wrap">
+      <div class="mic-ring1" id="mring1"></div>
+      <div class="mic-ring2" id="mring2"></div>
+      <button class="micbtn" id="mbtn" onclick="toggleMic()">
+        <span id="micon">🎤</span>
+      </button>
+    </div>
+    <div class="micstatus" id="mstatus">Tap mic to speak • या नीचे टाइप करें</div>
+
+    <div class="ctx-row">
+      <button class="ctx on" onclick="setCtx(this,'general')">💬 General</button>
+      <button class="ctx" onclick="setCtx(this,'crop')">🌱 Crop</button>
+      <button class="ctx" onclick="setCtx(this,'disease')">🔬 Disease</button>
+      <button class="ctx" onclick="setCtx(this,'market')">📊 Market</button>
+      <button class="ctx" onclick="setCtx(this,'weather')">🌤️ Weather</button>
+      <button class="ctx" onclick="setCtx(this,'scheme')">🏛️ Scheme</button>
+    </div>
+
+    <div class="chat-row">
+      <input class="cin" id="cin"
+             placeholder="Ask KisanAI anything... e.g. 'Which crop should I grow after rice?'"
+             onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button class="sendbtn" onclick="sendChat()" title="Send">➤</button>
+    </div>
+
+    <div class="ai-box" id="aibox">
+      <div class="ai-head">
+        <span class="ai-lbl"><div class="ai-dot"></div> KisanAI Reply</span>
+        <button class="spkbtn" onclick="speakEl('aitxt')">🔊 Speak</button>
+      </div>
+      <div class="ai-txt" id="aitxt"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Feature Cards ───────────────────────────────────────────────────── -->
+<div class="sec-ttl">🚀 Features</div>
+<div class="fgrid">
+  <div class="fcard" style="--ac:var(--primary)" onclick="openPanel('cpanel')">
+    <div class="fcard-top"></div>
+    <div class="flive">AI</div>
+    <span class="ficon">🌱</span>
+    <div class="fname">Crop Advice</div>
+    <div class="fdesc">AI rotation plan + soil tips</div>
+  </div>
+  <div class="fcard" style="--ac:var(--danger)" onclick="openPanel('lpanel')">
+    <div class="fcard-top" style="background:var(--danger)"></div>
+    <div class="flive" style="background:var(--danger)">VISION</div>
+    <span class="ficon">🔬</span>
+    <div class="fname">Scan Leaf</div>
+    <div class="fdesc">Disease detection + treatment</div>
+  </div>
+  <div class="fcard" style="--ac:var(--accent)" onclick="openPanel('wpanel')">
+    <div class="fcard-top" style="background:var(--accent)"></div>
+    <div class="flive" style="background:var(--accent)">LIVE</div>
+    <span class="ficon">🌤️</span>
+    <div class="fname">Weather</div>
+    <div class="fdesc">Real-time alerts & advice</div>
+  </div>
+  <div class="fcard" style="--ac:var(--secondary-dk)" onclick="openPanel('mpanel')">
+    <div class="fcard-top" style="background:var(--secondary-dk)"></div>
+    <div class="flive" style="background:var(--secondary-dk)">LIVE</div>
+    <span class="ficon">📊</span>
+    <div class="fname">Market Prices</div>
+    <div class="fdesc">Live mandi + sell timing</div>
+  </div>
+  <div class="fcard" style="--ac:var(--purple)" onclick="openPanel('spanel')">
+    <div class="fcard-top" style="background:var(--purple)"></div>
+    <div class="flive" style="background:var(--purple)">DB</div>
+    <span class="ficon">🏛️</span>
+    <div class="fname">Govt Schemes</div>
+    <div class="fdesc">5 live schemes + eligibility</div>
+  </div>
+  <div class="fcard" style="--ac:#78716C" onclick="openPanel('opanel')">
+    <div class="fcard-top" style="background:#78716C"></div>
+    <span class="ficon">📱</span>
+    <div class="fname">Saved Advice</div>
+    <div class="fdesc">IndexedDB offline cache</div>
+  </div>
+</div>
+
+<!-- ── CROP PANEL ──────────────────────────────────────────────────────── -->
+<div class="panel" id="cpanel">
+  <div class="panel-ttl">🌱 AI Crop Advice & Rotation
+    <button class="closebtn" onclick="closePanel('cpanel')">✕ Close</button>
+  </div>
+  <div class="fg"><label class="fl">Previous Crops Grown (last 1–2 seasons)</label>
+    <input class="fi" id="prev" placeholder="e.g., Wheat, Rice, Cotton..."/></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="fg"><label class="fl">Soil Type</label>
+      <select class="fs" id="soil">
+        <option value="">Select...</option>
+        <option>Black Cotton Soil (Regur)</option>
+        <option>Red Laterite Soil</option>
+        <option>Alluvial Soil</option>
+        <option>Sandy Soil</option>
+        <option>Clay / Loamy Soil</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Land Size</label>
+      <input class="fi" id="lsz" placeholder="e.g., 2 acres, 5 bigha..."/></div>
+  </div>
+  <div class="fg"><label class="fl">Your State / Region</label>
+    <input class="fi" id="cloc" placeholder="e.g., Punjab, Maharashtra, Andhra Pradesh..."/></div>
+  <button class="subbtn" onclick="getCropAdvice()" id="crop-btn">🌾 Get AI Crop Rotation Plan</button>
+  <div class="rbox" id="cr">
+    <div class="rhead">
+      <span class="rlbl">🤖 Claude AI — Crop Rotation Plan</span>
+      <button class="spkbtn" onclick="speakEl('cr-txt')">🔊 Speak</button>
+    </div>
+    <div class="rtext" id="cr-txt"></div>
+  </div>
+</div>
+
+<!-- ── LEAF PANEL ──────────────────────────────────────────────────────── -->
+<div class="panel" id="lpanel">
+  <div class="panel-ttl">🔬 AI Leaf Disease Scanner
+    <button class="closebtn" onclick="closePanel('lpanel')">✕ Close</button>
+  </div>
+  <div class="fg"><label class="fl">Crop Name</label>
+    <input class="fi" id="lcrop" placeholder="e.g., Wheat, Rice, Tomato, Cotton..."/></div>
+  <div class="upzone" onclick="document.getElementById('lfile').click()">
+    <input type="file" id="lfile" accept="image/*" style="display:none" onchange="previewLeaf(this)"/>
+    <span class="upicon">📷</span>
+    <div class="uptxt">Upload Leaf Photo for AI Analysis</div>
+    <div class="uphint">Clear photo in good light gives best results • Supports JPG, PNG</div>
+  </div>
+  <div id="lprev" style="display:none;text-align:center;margin-bottom:16px">
+    <img id="limg" style="max-height:200px;border-radius:12px;box-shadow:var(--shadow)" alt="Leaf"/>
+    <div style="font-size:.8rem;color:var(--text-lt);margin-top:6px;font-weight:600">📷 Image ready for AI analysis</div>
+  </div>
+  <button class="subbtn" onclick="analyzeLeaf()" id="leaf-btn">🔍 Analyze with Claude Vision AI</button>
+  <div class="rbox" id="lr">
+    <div class="rhead">
+      <span class="rlbl">🔬 Claude Vision — Disease Analysis</span>
+      <button class="spkbtn" onclick="speakEl('lr-txt')">🔊 Speak</button>
+    </div>
+    <div class="hs-wrap" id="hs-wrap"></div>
+    <div class="rtext" id="lr-txt"></div>
+  </div>
+</div>
+
+<!-- ── WEATHER PANEL ───────────────────────────────────────────────────── -->
+<div class="panel" id="wpanel">
+  <div class="panel-ttl">🌤️ Real-time Weather + AI Farming Advice
+    <button class="closebtn" onclick="closePanel('wpanel')">✕ Close</button>
+  </div>
+  <div class="fg"><label class="fl">Your City / District Name</label>
+    <input class="fi" id="wloc" placeholder="e.g., Ludhiana, Nashik, Warangal, Vijayawada..."/></div>
+  <button class="subbtn" onclick="getWeather()" id="weather-btn">🌦️ Get Live Weather + AI Advice</button>
+  <div class="rbox" id="wr">
+    <div class="rhead">
+      <span class="rlbl">🌤️ Live Weather Feed</span>
+      <button class="spkbtn" onclick="speakEl('w-adv')">🔊 Speak Advice</button>
+    </div>
+    <div id="last-updated" style="font-size:.72rem;color:var(--text-lt);margin-bottom:12px"></div>
+    <div class="w-grid" id="wstats"></div>
+    <div class="alerts-list" id="walerts"></div>
+    <div class="rtext" id="w-adv"></div>
+  </div>
+</div>
+
+<!-- ── MARKET PANEL ────────────────────────────────────────────────────── -->
+<div class="panel" id="mpanel">
+  <div class="panel-ttl">📊 Live Market Prices + Sell Timing
+    <button class="closebtn" onclick="closePanel('mpanel')">✕ Close</button>
+  </div>
+  <div class="fg"><label class="fl">Which crop do you want to sell?</label>
+    <select class="fs" id="mcrop">
+      <option value="">All crops overview</option>
+      <option value="wheat">🌾 Wheat</option>
+      <option value="rice">🌾 Rice</option>
+      <option value="cotton">🌿 Cotton</option>
+      <option value="soybean">🫘 Soybean</option>
+      <option value="maize">🌽 Maize</option>
+      <option value="onion">🧅 Onion</option>
+      <option value="tomato">🍅 Tomato</option>
+      <option value="potato">🥔 Potato</option>
+    </select>
+  </div>
+  <button class="subbtn" onclick="getMarket()" id="market-btn">📈 Get Live Prices + AI Sell Advice</button>
+  <div class="rbox" id="mr">
+    <div class="rhead">
+      <span class="rlbl">📊 Mandi Prices — Live</span>
+      <button class="spkbtn" onclick="speakEl('m-adv')">🔊 Speak</button>
+    </div>
+    <table class="ptbl">
+      <thead><tr><th>Crop</th><th>MSP Rate</th><th>Market Trend</th><th>Best Sell Month</th><th>Change</th></tr></thead>
+      <tbody id="ptbody"></tbody>
+    </table>
+    <div class="rtext" id="m-adv" style="margin-top:10px;padding-top:12px;border-top:2px dashed var(--border)"></div>
+  </div>
+</div>
+
+<!-- ── SCHEME PANEL ────────────────────────────────────────────────────── -->
+<div class="panel" id="spanel">
+  <div class="panel-ttl">🏛️ Government Agriculture Schemes
+    <button class="closebtn" onclick="closePanel('spanel')">✕ Close</button>
+  </div>
+  <div class="fg"><label class="fl">Your Profile (for personalized suggestions)</label>
+    <input class="fi" id="fprofile" placeholder="e.g., small farmer, 3 acres wheat, Punjab, below BPL..."/></div>
+  <button class="subbtn" onclick="getSchemes()" id="scheme-btn">🔍 Find Best Schemes for Me</button>
+  <div class="rbox" id="sr">
+    <div class="rhead">
+      <span class="rlbl">🏛️ MongoDB Schemes + AI Eligibility</span>
+      <button class="spkbtn" onclick="speakEl('s-ai')">🔊 Speak</button>
+    </div>
+    <div id="scards"></div>
+    <div class="rtext" id="s-ai" style="margin-top:16px;padding-top:16px;border-top:2px dashed var(--border)"></div>
+  </div>
+</div>
+
+<!-- ── OFFLINE PANEL ───────────────────────────────────────────────────── -->
+<div class="panel" id="opanel">
+  <div class="panel-ttl">📱 Saved Advice — Offline Mode
+    <button class="closebtn" onclick="closePanel('opanel')">✕ Close</button>
+  </div>
+  <div style="background:var(--primary-pale);border-radius:var(--rs);padding:14px;margin-bottom:16px;border:1px solid rgba(0,168,107,.2)">
+    <div style="font-weight:700;color:var(--primary-dk);font-size:.9rem;margin-bottom:4px">📡 IndexedDB Offline Cache</div>
+    <div style="font-size:.82rem;color:var(--text-md)">All responses are automatically saved. Access them even on 2G or no network.</div>
+  </div>
+  <div id="oitems">
+    <div style="text-align:center;padding:20px;color:var(--text-lt)">
+      <div style="font-size:40px;margin-bottom:8px">📦</div>
+      Use features above to save advice. They'll appear here for offline access.
+    </div>
+  </div>
+  <button class="subbtn" style="background:linear-gradient(135deg,var(--danger),#FF6B6B);margin-top:16px"
+          onclick="clearCache()">🗑️ Clear All Saved Data</button>
+</div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  KISANAI 2.0 — COMBINED BACKEND + FRONTEND JAVASCRIPT
+//  Real Claude AI • Real-time polls • MongoDB simulation
+// ═══════════════════════════════════════════════════════════
+
+// ── App State ──────────────────────────────────────────────
+const S = {
+  lang: localStorage.getItem('kv2_lang') || '',
+  ctx: 'general',
+  listening: false,
+  synth: window.speechSynthesis,
+  recognition: null,
+  leafData: null,
+  weatherInterval: null,
+  marketInterval: null,
+  queryCount: 18392,
+  userId: localStorage.getItem('kv2_uid') || ('user_' + Math.random().toString(36).slice(2,9)),
+};
+localStorage.setItem('kv2_uid', S.userId);
+
+// ── Static market data (simulates MongoDB collection) ──────
+const MARKET_DB = {
+  wheat:   { price:2275, unit:'₹/quintal', trend:'rising',   best:'Mar–Apr', change:+25, pct:'+1.1%' },
+  rice:    { price:2183, unit:'₹/quintal', trend:'stable',   best:'Nov–Dec', change:+0,  pct:'0%'    },
+  cotton:  { price:6620, unit:'₹/quintal', trend:'rising',   best:'Feb–Mar', change:+120,pct:'+1.8%' },
+  soybean: { price:4180, unit:'₹/quintal', trend:'falling',  best:'Jan–Feb', change:-120,pct:'-2.8%' },
+  maize:   { price:1870, unit:'₹/quintal', trend:'stable',   best:'Sep–Oct', change:+20, pct:'+1.1%' },
+  onion:   { price:2410, unit:'₹/quintal', trend:'volatile', best:'Apr–May', change:+10, pct:'+0.4%' },
+  tomato:  { price:1950, unit:'₹/quintal', trend:'falling',  best:'Oct–Nov', change:-150,pct:'-7.1%' },
+  potato:  { price:1310, unit:'₹/quintal', trend:'rising',   best:'Feb–Mar', change:+110,pct:'+9.2%' },
+};
+
+const SCHEMES_DB = [
+  { name:'PM-KISAN', full:'Pradhan Mantri Kisan Samman Nidhi', benefit:'₹6,000/year direct to bank in 3 equal installments', docs:'Aadhaar, Bank Passbook, Land Records (Khasra)', apply:'pm-kisan.gov.in or nearest CSC center', color:'#0099FF' },
+  { name:'PMFBY', full:'Pradhan Mantri Fasal Bima Yojana', benefit:'Crop insurance — Govt pays 95–98% of premium for you', docs:'Aadhaar, Bank Account, Sowing Certificate', apply:'Nearest bank branch or insurance company', color:'#00A86B' },
+  { name:'KCC', full:'Kisan Credit Card', benefit:'Up to ₹3 lakh at just 4% interest for seeds, fertilizer, tools', docs:'Identity Proof, Land Records, 2 Passport Photos', apply:'Any nationalized or cooperative bank', color:'#7C3AED' },
+  { name:'eNAM', full:'National Agriculture Market', benefit:'Sell directly to buyers across India — 5–15% better prices', docs:'Aadhaar, Bank Account, Mobile Number', apply:'enam.gov.in (free registration)', color:'#E69500' },
+  { name:'PMKSY', full:'Pradhan Mantri Krishi Sinchayee Yojana', benefit:'Up to 90% subsidy on drip/sprinkler irrigation system', docs:'Aadhaar, Land Records, Bank Account', apply:'State Agriculture Department office', color:'#FF4444' },
+];
+
+const SAVED_DATA = [
+  { key:'weather_Ludhiana', icon:'🌤️', prev:'Light rain expected in 48h. Don\'t spray pesticides. Check drainage...', date:'Feb 17, 3:45 PM' },
+  { key:'crop_advice', icon:'🌱', prev:'After Rice: Grow Mustard/Wheat this Rabi. Sow by Nov 15 for best yield...', date:'Feb 16, 10:20 AM' },
+  { key:'market_wheat', icon:'📊', prev:'Wheat prices rising ₹2,275→₹2,400 by March. Hold stock if storage available...', date:'Feb 15, 2:00 PM' },
+  { key:'scheme_kisan', icon:'🏛️', prev:'PM-KISAN: ₹6,000/year. Visit pm-kisan.gov.in with Aadhaar + bank passbook...', date:'Feb 14, 9:15 AM' },
+];
+
+// ── Language ─────────────────────────────────────────────────
+function selLang(btn, code) {
+  document.querySelectorAll('.lbtn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  S.lang = code;
+}
+
+function startApp() {
+  if (!S.lang) S.lang = 'en';
+  localStorage.setItem('kv2_lang', S.lang);
+  document.getElementById('lang-modal').classList.add('hidden');
+  document.getElementById('lsel').value = S.lang;
+  initVoice();
+  startClock();
+  animateCounters();
+  smartAlerts();
+  renderOffline();
+  speakText('Welcome to KisanAI 2.0! I am powered by real AI and live data. How can I help you today?');
+}
+
+function switchLang(v) {
+  S.lang = v;
+  localStorage.setItem('kv2_lang', v);
+  initVoice();
+  speakText('Language changed. I will now respond in your selected language.');
+}
+
+// ── Voice Recognition ─────────────────────────────────────────
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById('mstatus').textContent = '⚠️ Voice not supported. Please type your question.'; return; }
+  S.recognition = new SR();
+  S.recognition.continuous = false;
+  S.recognition.interimResults = true;
+  const lmap = { en:'en-IN',hi:'hi-IN',pa:'pa-IN',mr:'mr-IN',te:'te-IN',ta:'ta-IN',kn:'kn-IN',gu:'gu-IN',bn:'bn-IN' };
+  S.recognition.lang = lmap[S.lang] || 'hi-IN';
+
+  S.recognition.onstart = () => {
+    S.listening = true;
+    document.getElementById('mbtn').classList.add('on');
+    document.getElementById('mring1').classList.add('pulse');
+    document.getElementById('mring2').classList.add('pulse');
+    document.getElementById('micon').textContent = '⏹';
+    document.getElementById('mstatus').textContent = '🎙️ सुन रहा हूँ... Listening now!';
+  };
+  S.recognition.onresult = e => {
+    const t = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('cin').value = t;
+    if (e.results[0].isFinal) { sendChat(); }
+  };
+  S.recognition.onend = () => {
+    S.listening = false;
+    document.getElementById('mbtn').classList.remove('on');
+    document.getElementById('mring1').classList.remove('pulse');
+    document.getElementById('mring2').classList.remove('pulse');
+    document.getElementById('micon').textContent = '🎤';
+    if (!document.getElementById('mstatus').textContent.includes('thinking')) {
+      document.getElementById('mstatus').textContent = 'Tap mic to speak • या नीचे टाइप करें';
+    }
+  };
+  S.recognition.onerror = e => {
+    S.listening = false;
+    document.getElementById('mbtn').classList.remove('on');
+    document.getElementById('mring1').classList.remove('pulse');
+    document.getElementById('mring2').classList.remove('pulse');
+    document.getElementById('micon').textContent = '🎤';
+    document.getElementById('mstatus').textContent = `⚠️ ${e.error} — Please type below`;
+  };
+}
+
+function toggleMic() {
+  if (!S.recognition) { initVoice(); if (!S.recognition) return; }
+  S.synth.cancel();
+  S.listening ? S.recognition.stop() : S.recognition.start();
+}
+
+// ── Text-to-Speech ────────────────────────────────────────────
+function speakText(txt) {
+  if (!window.speechSynthesis) return;
+  S.synth.cancel();
+  const clean = txt.replace(/[^\w\s.,!?।₹%/-]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!clean) return;
+  const u = new SpeechSynthesisUtterance(clean.slice(0, 600));
+  const lmap = { en:'en-IN',hi:'hi-IN',pa:'pa-IN',mr:'mr-IN',te:'te-IN',ta:'ta-IN' };
+  u.lang = lmap[S.lang] || 'en-IN';
+  u.rate = 0.92; u.pitch = 1.05;
+  const voices = S.synth.getVoices();
+  const prefix = u.lang.split('-')[0];
+  const v = voices.find(v => v.lang.startsWith(prefix));
+  if (v) u.voice = v;
+  S.synth.speak(u);
+}
+
+function speakEl(id) { speakText(document.getElementById(id).textContent); }
+
+// ── Claude AI Chat (Real API) ─────────────────────────────────
+async function sendChat() {
+  const msg = document.getElementById('cin').value.trim();
+  if (!msg) return;
+
+  const box = document.getElementById('aibox');
+  const txt = document.getElementById('aitxt');
+  box.classList.add('show');
+  txt.innerHTML = '<span class="spin"></span> Claude AI is thinking...';
+  document.getElementById('mstatus').textContent = '⏳ AI is thinking...';
+  S.queryCount++;
+  document.getElementById('db-queries').textContent = S.queryCount.toLocaleString();
+
+  const langNames = { en:'English', hi:'Hindi', pa:'Punjabi', mr:'Marathi', te:'Telugu', ta:'Tamil', kn:'Kannada', gu:'Gujarati', bn:'Bengali' };
+  const langName = langNames[S.lang] || 'English';
+  const ctxHints = {
+    crop: 'The farmer is asking about CROP ADVICE or ROTATION. Suggest specific crops with reasons.',
+    disease: 'The farmer is asking about PLANT DISEASE or FERTILIZER. Give diagnosis and treatment.',
+    market: 'The farmer is asking about MARKET PRICES or SELLING. Give current MSP and advice.',
+    weather: 'The farmer is asking about WEATHER or FARMING DECISIONS. Give action items.',
+    scheme: 'The farmer is asking about GOVERNMENT SCHEMES. List top schemes and eligibility.',
+    general: ''
+  };
+
+  const systemPrompt = `You are KisanAI, a friendly agriculture assistant for Indian farmers. 
+MUST respond entirely in ${langName}.
+Use simple language a farmer can understand. Be warm, practical and concise.
+Current date: ${new Date().toLocaleDateString('en-IN')}. Current season: ${getSeason()}.
+${ctxHints[S.ctx] || ''}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: msg }]
+      })
+    });
+    const data = await response.json();
+    const reply = data.content?.[0]?.text || 'Sorry, could not get a response. Please try again.';
+    typeText('aitxt', reply);
+    saveToCache(`chat_${msg.slice(0,20)}`, { icon: '💬', key: msg.slice(0,30), data: reply });
+    document.getElementById('cin').value = '';
+    document.getElementById('mstatus').textContent = '✅ Done! Tap mic to ask another question.';
+    setTimeout(() => speakText(reply.slice(0, 500)), 200);
+  } catch (err) {
+    txt.textContent = '⚠️ Connecting to AI... Please check connection and try again.';
+    document.getElementById('mstatus').textContent = 'Error — please try again';
+  }
+}
+
+// ── Crop Advice (Real AI) ─────────────────────────────────────
+async function getCropAdvice() {
+  const btn = document.getElementById('crop-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin w"></span> Getting AI Advice...';
+  const rbox = document.getElementById('cr');
+  rbox.classList.remove('show');
+
+  const langNames = { en:'English', hi:'Hindi', pa:'Punjabi', mr:'Marathi', te:'Telugu', ta:'Tamil', kn:'Kannada', gu:'Gujarati', bn:'Bengali' };
+
+  const prompt = `Farmer details:
+- Previous crops: ${document.getElementById('prev').value || 'not specified'}
+- Soil type: ${document.getElementById('soil').value || 'not specified'}
+- Location: ${document.getElementById('cloc').value || 'India'}
+- Land size: ${document.getElementById('lsz').value || 'not specified'}
+- Current season: ${getSeason()}
+
+Respond in ${langNames[S.lang] || 'English'} with:
+🌾 TOP 3 RECOMMENDED CROPS (with sowing dates and expected yield per acre)
+🔄 CROP ROTATION PLAN (for next 12 months)
+🌱 SOIL HEALTH BENEFITS
+💡 2-3 PRO TIPS specific to their situation
+📅 SOWING CALENDAR
+
+Use simple farmer-friendly language. Include quantities in familiar units.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'AI service unavailable. Please try again.';
+    rbox.classList.add('show');
+    typeText('cr-txt', reply);
+    saveToCache('crop_advice', { icon: '🌱', key: 'Crop Rotation Plan', data: reply });
+    speakText(reply.slice(0, 500));
+  } catch { document.getElementById('cr-txt').textContent = '⚠️ Could not connect. Please check your internet.'; rbox.classList.add('show'); }
+
+  btn.disabled = false; btn.innerHTML = '🌾 Get AI Crop Rotation Plan';
+}
+
+// ── Leaf Analysis (Real Claude Vision) ─────────────────────────
+function previewLeaf(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    S.leafData = e.target.result;
+    document.getElementById('limg').src = e.target.result;
+    document.getElementById('lprev').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzeLeaf() {
+  if (!S.leafData) { alert('Please upload a leaf photo first!'); return; }
+  const btn = document.getElementById('leaf-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin w"></span> Claude Vision analyzing...';
+  const rbox = document.getElementById('lr');
+  rbox.classList.remove('show');
+
+  const langNames = { en:'English', hi:'Hindi', pa:'Punjabi', mr:'Marathi', te:'Telugu', ta:'Tamil', kn:'Kannada', gu:'Gujarati', bn:'Bengali' };
+  const crop = document.getElementById('lcrop').value || 'crop';
+  let [header, b64] = S.leafData.split(',');
+  const mime = header.split(':')[1].split(';')[0];
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } },
+            { type: 'text', text: `Analyze this ${crop} leaf in ${langNames[S.lang]||'English'}. Respond with exactly:\n🔍 CROP HEALTH SCORE: [X/10]\n🌿 DIAGNOSIS: [disease name + cause]\n⚠️ SEVERITY: [Mild/Moderate/Severe]\n💊 TREATMENT: [3 numbered steps]\n🌱 FERTILIZER: [specific product + quantity per acre]\n✅ PREVENTION: [2-3 tips]\nUse simple farmer language. Mention locally available products.` }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const analysis = data.content?.[0]?.text || 'Analysis failed. Please try again.';
+    const scoreMatch = analysis.match(/(\d+)\/10/);
+    const score = scoreMatch ? parseInt(scoreMatch[1]) : 7;
+    const cls = score >= 7 ? '' : score >= 4 ? 'fair' : 'poor';
+    document.getElementById('hs-wrap').innerHTML = `
+      <div class="hs-ring ${cls}">${score}<div style="font-size:.65rem;font-weight:700">/10</div></div>
+      <div style="font-size:.82rem;color:var(--text-lt);font-weight:700">Crop Health Score</div>`;
+    rbox.classList.add('show');
+    typeText('lr-txt', analysis);
+    document.getElementById('db-diagnoses').textContent = (parseInt(document.getElementById('db-diagnoses').textContent.replace(',','')) + 1).toLocaleString();
+    saveToCache('leaf_analysis', { icon: '🔬', key: `${crop} Leaf Analysis`, data: analysis });
+    speakText(analysis.slice(0, 500));
+  } catch { document.getElementById('lr-txt').textContent = '⚠️ Analysis failed. Check internet and try again.'; rbox.classList.add('show'); }
+
+  btn.disabled = false; btn.innerHTML = '🔍 Analyze with Claude Vision AI';
+}
+
+// ── Weather (Real API simulation + AI advice) ─────────────────
+async function getWeather() {
+  const city = document.getElementById('wloc').value.trim();
+  if (!city) { alert('Please enter your city name!'); return; }
+  const btn = document.getElementById('weather-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin w"></span> Fetching live weather...';
+  const rbox = document.getElementById('wr');
+  rbox.classList.remove('show');
+
+  // Simulated real-time weather data (replace with OpenWeatherMap API call in production)
+  const now = new Date();
+  const hour = now.getHours();
+  const basetemp = 22 + Math.sin(hour/6) * 8;
+  const weather = {
+    city,
+    temp: Math.round(basetemp + (Math.random()*4-2)),
+    feels: Math.round(basetemp + 3),
+    humidity: Math.round(55 + Math.random()*25),
+    wind: Math.round(8 + Math.random()*18),
+    condition: ['Partly Cloudy','Clear Sky','Light Clouds','Hazy'][Math.floor(Math.random()*4)],
+    rainfall: Math.random() > 0.7 ? Math.round(Math.random()*8) : 0,
+    uv: Math.round(3 + Math.random()*6),
+  };
+
+  // Get AI farming advice
+  const langNames = { en:'English', hi:'Hindi', pa:'Punjabi', mr:'Marathi', te:'Telugu', ta:'Tamil', kn:'Kannada', gu:'Gujarati', bn:'Bengali' };
+  const prompt = `Weather in ${weather.city}: ${weather.temp}°C (feels ${weather.feels}°C), Humidity ${weather.humidity}%, Wind ${weather.wind} km/h, ${weather.condition}, Rainfall ${weather.rainfall}mm, UV ${weather.uv}.
+Season: ${getSeason()}. Date: ${now.toLocaleDateString('en-IN')}.
+
+In ${langNames[S.lang]||'English'}, give farming advice:
+1. Should they irrigate today? Why?
+2. Any heat/rain/humidity stress warnings?
+3. Best farm activities for today (morning/afternoon)?
+4. Any spraying/harvesting advice?
+Be brief and practical.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const advice = data.content?.[0]?.text || 'AI advice unavailable.';
+
+    // Render weather stats
+    document.getElementById('wstats').innerHTML = `
+      <div class="wstat"><div class="wval">${weather.temp}°C</div><div class="wlbl">Temperature</div></div>
+      <div class="wstat"><div class="wval">${weather.humidity}%</div><div class="wlbl">Humidity</div></div>
+      <div class="wstat"><div class="wval">${weather.wind} km/h</div><div class="wlbl">Wind Speed</div></div>
+      <div class="wstat"><div class="wval">${weather.condition}</div><div class="wlbl">Condition</div></div>`;
+
+    // Generate alerts
+    const alerts = [];
+    if (weather.temp > 36) alerts.push({ cls:'danger', icon:'🔥', txt:'Heat stress! Water crops before 8 AM and after 5 PM only.' });
+    if (weather.humidity > 80) alerts.push({ cls:'danger', icon:'🍄', txt:'High humidity — fungal disease risk is high. Avoid overhead irrigation.' });
+    if (weather.rainfall > 5) alerts.push({ cls:'', icon:'🌧️', txt:'Rainfall recorded — hold irrigation for 2-3 days. Check field drainage.' });
+    if (weather.wind > 25) alerts.push({ cls:'', icon:'💨', txt:'Strong winds — do NOT spray pesticides today. Support tall crops.' });
+    if (weather.uv > 8) alerts.push({ cls:'', icon:'☀️', txt:'Very high UV — protect workers and avoid midday field work.' });
+    if (!alerts.length) alerts.push({ cls:'info', icon:'✅', txt:'Good farming conditions today! Ideal time for spraying and field work.' });
+
+    document.getElementById('walerts').innerHTML = alerts.map(a =>
+      `<div class="ali ${a.cls}"><span class="ali-icon">${a.icon}</span><div><div class="ali-txt">${a.txt}</div><div class="ali-time">Updated just now • ${city}</div></div></div>`
+    ).join('');
+
+    document.getElementById('last-updated').textContent = `📡 Last updated: ${now.toLocaleTimeString('en-IN')} • Source: OpenWeatherMap (simulated)`;
+    rbox.classList.add('show');
+    typeText('w-adv', advice);
+    saveToCache(`weather_${city}`, { icon: '🌤️', key: `Weather: ${city}`, data: advice });
+
+    if (alerts.some(a => a.cls === 'danger')) speakText('Alert! ' + alerts.filter(a=>a.cls==='danger').map(a=>a.txt).join('. '));
+    else speakText(advice.slice(0, 400));
+
+    // Auto-refresh every 60s
+    if (S.weatherInterval) clearInterval(S.weatherInterval);
+    S.weatherInterval = setInterval(() => getWeather(), 60000);
+
+  } catch { document.getElementById('w-adv').textContent = '⚠️ Weather service unavailable.'; rbox.classList.add('show'); }
+
+  btn.disabled = false; btn.innerHTML = '🌦️ Get Live Weather + AI Advice';
+}
+
+// ── Market Prices ─────────────────────────────────────────────
+async function getMarket() {
+  const crop = document.getElementById('mcrop').value;
+  const btn = document.getElementById('market-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin w"></span> Fetching live prices...';
+  const rbox = document.getElementById('mr');
+  rbox.classList.remove('show');
+
+  // Simulate real-time price fluctuation (like Socket.io push)
+  const liveData = { ...MARKET_DB };
+  Object.keys(liveData).forEach(k => {
+    const fluc = (Math.random() - 0.45) * 20;
+    liveData[k] = { ...liveData[k], price: liveData[k].price + Math.round(fluc) };
+  });
+
+  const displayData = crop && liveData[crop] ? { [crop]: liveData[crop] } : liveData;
+
+  const tArr = { rising:'↑', falling:'↓', stable:'→', volatile:'↕' };
+  document.getElementById('ptbody').innerHTML = Object.entries(displayData).map(([c, d]) => `
+    <tr>
+      <td><strong>${c.charAt(0).toUpperCase()+c.slice(1)}</strong></td>
+      <td><strong>₹${d.price}</strong><span style="font-size:.75rem;color:var(--text-lt)">/${d.unit.split('/')[1]||'q'}</span></td>
+      <td><span class="tbadge tr-${d.trend}">${d.trend} ${tArr[d.trend]||'→'}</span></td>
+      <td style="color:var(--text-md)">${d.best}</td>
+      <td class="price-change ${d.change>=0?'price-up':'price-dn'}">${d.change>=0?'+':''}${d.change} (${d.pct})</td>
+    </tr>`).join('');
+
+  // Get AI market advice
+  const langNames = { en:'English', hi:'Hindi', pa:'Punjabi', mr:'Marathi', te:'Telugu', ta:'Tamil', kn:'Kannada', gu:'Gujarati', bn:'Bengali' };
+  const pricesText = Object.entries(displayData).map(([c,d]) => `${c}: ₹${d.price} (${d.trend})`).join(', ');
+  const prompt = `Current mandi prices: ${pricesText}. Date: ${new Date().toLocaleDateString('en-IN')}.
+In ${langNames[S.lang]||'English'}, advise the farmer:
+1. Which crop to sell NOW vs WAIT?
+2. Expected price movement in 2-4 weeks?
+3. Simple tips to get better prices (storage, grading, eNAM)?
+Be practical and honest about uncertainty.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const advice = data.content?.[0]?.text || '';
+    rbox.classList.add('show');
+    typeText('m-adv', advice);
+    saveToCache('market_prices', { icon: '📊', key: 'Market Price Analysis', data: advice });
+    speakText(advice.slice(0, 500));
+
+    // Auto-refresh every 5 min
+    if (S.marketInterval) clearInterval(S.marketInterval);
+    S.marketInterval = setInterval(() => getMarket(), 300000);
+  } catch { document.getElementById('m-adv').textContent = '⚠️ Market service unavailable.'; rbox.classList.add('show'); }
+
+  btn.disabled = false; btn.innerHTML = '📈 Get Live Prices + AI Sell Advice';
+}
+
+// ── Government Schemes ────────────────────────────────────────
+async function getSchemes() {
+  const btn = document.getElementById('scheme-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin w"></span> Finding best schemes...';
+  const rbox = document.getElementById('sr');
+  rbox.classList.remove('show');
+
+  // Render scheme cards from MongoDB simulation
+  document.getElementById('scards').innerHTML = SCHEMES_DB.map(s => `
+    <div class="sc">
+      <div class="sc-head">
+        <div class="sc-name">${s.name}</div>
+        <div class="sc-badge" style="background:${s.color}20;color:${s.color}">ACTIVE</div>
+      </div>
+      <div class="sc-full">${s.full}</div>
+      <div class="sc-benefit">✅ ${s.benefit}</div>
+      <div class="sc-detail">📋 <strong>Documents:</strong> ${s.docs}<br>🏢 <strong>Apply at:</strong> ${s.apply}</div>
+    </div>`).join('');
+
+  // AI eligibility recommendation
+  const langNames = { en:'English', hi:'Hindi', pa:'Punjabi', mr:'Marathi', te:'Telugu', ta:'Tamil', kn:'Kannada', gu:'Gujarati', bn:'Bengali' };
+  const profile = document.getElementById('fprofile').value || 'Indian farmer';
+  const schemesText = SCHEMES_DB.map(s => `${s.name}: ${s.benefit}`).join('; ');
+  const prompt = `Farmer profile: ${profile}. Available schemes: ${schemesText}.
+In ${langNames[S.lang]||'English'}, recommend TOP 3 schemes for this farmer.
+For each: what they'll get, do they qualify (simple yes/no), what documents to collect, where to apply step by step.
+Be encouraging and use very simple language.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const advice = data.content?.[0]?.text || '';
+    rbox.classList.add('show');
+    typeText('s-ai', advice);
+    saveToCache('schemes', { icon: '🏛️', key: 'Scheme Recommendations', data: advice });
+    speakText(advice.slice(0, 500));
+  } catch { document.getElementById('s-ai').textContent = '⚠️ AI unavailable. See scheme cards above for details.'; rbox.classList.add('show'); }
+
+  btn.disabled = false; btn.innerHTML = '🔍 Find Best Schemes for Me';
+}
+
+// ── Cache (simulating IndexedDB/MongoDB) ──────────────────────
+function saveToCache(key, item) {
+  const cache = JSON.parse(localStorage.getItem('kv2_cache') || '[]');
+  const idx = cache.findIndex(i => i.key === key);
+  const entry = { ...item, cacheKey: key, timestamp: new Date().toISOString() };
+  if (idx >= 0) cache[idx] = entry; else cache.unshift(entry);
+  localStorage.setItem('kv2_cache', JSON.stringify(cache.slice(0, 30)));
+  renderOffline();
+}
+
+function getFromCache(key) {
+  const cache = JSON.parse(localStorage.getItem('kv2_cache') || '[]');
+  return cache.find(i => i.cacheKey === key);
+}
+
+function renderOffline() {
+  const cache = JSON.parse(localStorage.getItem('kv2_cache') || '[]');
+  const items = cache.length ? cache : SAVED_DATA.map(s => ({ icon:s.icon, key:s.key, data:s.prev, timestamp:s.date }));
+  document.getElementById('oitems').innerHTML = items.slice(0, 12).map(item => `
+    <div class="offline-item" onclick="speakText('${(item.data||'').slice(0,300).replace(/'/g,"\\'")}')">
+      <div class="oi-icon">${item.icon || '📌'}</div>
+      <div class="oi-body">
+        <div class="oi-key">${item.key || item.cacheKey}</div>
+        <div class="oi-prev">${(item.data||'').slice(0,90)}...</div>
+        <div class="oi-meta">
+          <span>💾 ${item.timestamp ? new Date(item.timestamp).toLocaleDateString('en-IN') : 'Cached'}</span>
+          <span>🔊 Tap to listen</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function clearCache() {
+  if (confirm('Clear all saved advice from local storage?')) {
+    localStorage.removeItem('kv2_cache');
+    renderOffline();
+  }
+}
+
+// ── Panel Management ──────────────────────────────────────────
+function openPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  const p = document.getElementById(id);
+  p.classList.add('show');
+  setTimeout(() => p.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+  if (id === 'opanel') renderOffline();
+}
+function closePanel(id) { document.getElementById(id).classList.remove('show'); }
+function setCtx(btn, ctx) {
+  document.querySelectorAll('.ctx').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on'); S.ctx = ctx;
+}
+
+// ── Typing Animation ──────────────────────────────────────────
+function typeText(id, text, speed = 8) {
+  const el = document.getElementById(id);
+  el.textContent = '';
+  let i = 0;
+  const cursor = document.createElement('span');
+  cursor.className = 'typing-cursor';
+  el.appendChild(cursor);
+  const interval = setInterval(() => {
+    if (i < text.length) {
+      cursor.insertAdjacentText('beforebegin', text[i]);
+      i++;
+    } else {
+      clearInterval(interval);
+      cursor.remove();
+    }
+  }, speed);
+}
+
+// ── UI Utilities ──────────────────────────────────────────────
+function getSeason() {
+  const m = new Date().getMonth() + 1;
+  if ([6,7,8,9].includes(m)) return 'Kharif (monsoon crops)';
+  if ([10,11,12,1,2,3].includes(m)) return 'Rabi (wheat/mustard season)';
+  return 'Zaid (summer crops)';
+}
+
+function startClock() {
+  const update = () => {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  };
+  update();
+  setInterval(update, 1000);
+}
+
+function animateCounters() {
+  // Simulate live counter increments
+  setInterval(() => {
+    const q = document.getElementById('db-queries');
+    q.textContent = (parseInt(q.textContent.replace(',','')) + Math.floor(Math.random()*3)).toLocaleString();
+  }, 8000);
+}
+
+function smartAlerts() {
+  const alerts = [
+    '🌧️ Heavy rain forecast for Punjab in 24 hrs — secure crops and check drainage!',
+    '📈 Wheat prices rising — ₹2,275 today. Consider selling by March for peak profit.',
+    '🏛️ PM-KISAN next installment due in April — verify your account at pm-kisan.gov.in',
+    '🌡️ Heat wave warning in Vidarbha — water cotton crops before 8 AM only',
+    '🔔 eNAM: Soybean demand high — register now to get 10% better price!',
+  ];
+  let i = 0;
+  const show = () => {
+    document.getElementById('atxt').textContent = alerts[i % alerts.length];
+    document.getElementById('abar').classList.add('show');
+    setTimeout(hideAlert, 10000);
+    i++;
+  };
+  setTimeout(show, 2500);
+  setInterval(show, 35000);
+}
+
+function hideAlert() { document.getElementById('abar').classList.remove('show'); }
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // Pre-select Hindi
+  const hiBtn = document.querySelector('[onclick*=",\'hi\'"]');
+  if (hiBtn) selLang(hiBtn, 'hi');
+
+  if (S.lang) {
+    document.getElementById('lang-modal').classList.add('hidden');
+    document.getElementById('lsel').value = S.lang;
+    initVoice(); startClock(); animateCounters(); smartAlerts(); renderOffline();
+  }
+
+  // Load speech voices
+  if (window.speechSynthesis) {
+    speechSynthesis.addEventListener('voiceschanged', () => {});
+    speechSynthesis.getVoices();
+  }
+});
+</script>
+</body>
+</html>
